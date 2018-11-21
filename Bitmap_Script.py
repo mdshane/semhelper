@@ -1,5 +1,3 @@
-% matplotlib inline
-
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.special as sp
@@ -49,6 +47,27 @@ def create_EBL_interdigitating_electrodes(h_pixel, b_pixel, pitch, bond_patch_he
     
     output_filename = filename + '_p' + str(int(pitch*1000)) + '_h' + str(int(h_pixel*pitch)) + '_b' + str(int(b_pixel*pitch)) + '_w' + str(w_um) + '_s' + str(s_um) + '_0' + str(file_num) + '.bmp'
     image.save(output_filename, "BMP")
+
+datasizes = [20, 20, 20, 30, 30, 30, 40, 40, 40] # Mb
+pitches = [0.030, 0.060, 0.100, 0.030, 0.060, 0.100, 0.030, 0.060, 0.100] # nm
+df = pd.DataFrame({'datasize': datasizes, 'pitch': pitches})
+df['pixel'] = df['datasize']*1024*1024/3
+df['h_um'] = [240, 540, 1040, 240, 740, 1040, 140, 540, 1040]
+df['h_pixel'] = np.floor(df['h_um']/df['pitch'])
+df['b_pixel'] = np.floor(df['pixel']/df['h_pixel'])
+df['b_um'] = df['b_pixel']*df['pitch']
+
+# Calculating the capacitance
+df['w_um'] = 3
+df['s_um'] = 3
+df['p_um'] = 100
+df['num_electrodes'] = [20, None, None, 31, None, None, None, None, None]
+df['q_um'] = df['w_um']*df['num_electrodes'] + df['s_um']*(df['num_electrodes']-1)
+eps_r = eps_r_StTiO3
+df['capacitance'] = capacitance(df['p_um']*1E-6, df['w_um']*1E-6, df['s_um']*1E-6, df['q_um']*1E-6, eps_r, n)
+df
+
+
 
 
 for i in [1]:
