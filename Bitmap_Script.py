@@ -19,7 +19,7 @@ def create_EBL_meander(total_width_pixel: int, total_height_pixel: int, overlap_
     draw.rectangle([0, 0, total_width_pixel, overlap_pixel], fill='white')
     draw.rectangle([0, total_height_pixel - overlap_pixel, total_width_pixel, total_height_pixel], fill='white')
 
-    #write lines
+    #write horizontal lines
     y = overlap_pixel + gap_pixel
     while y < total_height_pixel - overlap_pixel:
         draw.rectangle([0, y, total_width_pixel, y + line_width_pixel], fill='white')
@@ -142,22 +142,25 @@ class NanometerPixelConverter:
         
 
 if __name__ == '__main__':
-    
+    import os
 
-    width_nm = 2500
-    height_nm = 5000
-    pitch_nm = 10
+    width_nm = 24000
+    height_nm = 240000
+    pitch_nm = 30
 
     converter = NanometerPixelConverter(pitch_nm = pitch_nm)
 
     params = {  'total_width_pixel': converter.to_pixel(width_nm), 
                 'total_height_pixel': converter.to_pixel(height_nm), 
-                'overlap_pixel': converter.to_pixel(1000), 
-                'gap_pixel': converter.to_pixel(100), 
-                'line_width_pixel': converter.to_pixel(100)
+                'overlap_pixel': converter.to_pixel(10000), 
+                'gap_pixel': converter.to_pixel(1000), 
+                'line_width_pixel': converter.to_pixel(1000)
             }
 
     imageL, imageC, imageR = create_EBL_meander(**params)
+
+    if not os.path.exists(r'.\meander'):
+        os.makedirs(r'.\meander')
 
     imageL.save(r'meander\left_twp_{total_width_pixel}_thp_{total_height_pixel}_ovp_{overlap_pixel}_gp_{gap_pixel}_lwp_{line_width_pixel}.bmp'.format(**params), 'BMP')
     imageC.save(r'meander\center_twp_{total_width_pixel}_thp_{total_height_pixel}_ovp_{overlap_pixel}_gp_{gap_pixel}_lwp_{line_width_pixel}.bmp'.format(**params), 'BMP')
