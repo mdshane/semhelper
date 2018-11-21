@@ -4,10 +4,56 @@ import scipy.special as sp
 import pandas as pd
 import glob
 
+from PIL import Image, ImageDraw, ImageOps
+
 def dose(pitch_x, pitch_y, passes, current, dwell_time):
     dose = (dwell_time * passes * current)/(pitch_x * pitch_y)
     # nC/µm^2
     return dose
+
+def create_EBL_meander(total_width_pixel: int, total_height_pixel: int, overlap_pixel: int, gap_pixel: int, line_width_pixel: int) -> Image:
+    image_middle = Image.new(mode='RGB', size = (total_width_pixel, total_height_pixel))
+
+    draw = ImageDraw.Draw(image_middle)
+    # write overlap
+    draw.rectangle([0, 0, total_width_pixel, overlap_pixel], fill='white')
+    draw.rectangle([0, total_height_pixel - overlap_pixel, total_width_pixel, total_height_pixel], fill='white')
+
+    #write lines
+    y = overlap_pixel + gap_pixel
+    while y < total_height_pixel - overlap_pixel:
+        draw.rectangle([0, y, total_width_pixel, y + line_width_pixel], fill='white')
+        y += line_width_pixel + gap_pixel
+
+    del draw
+
+    image_left = image_middle.copy()
+
+    # left side
+    draw = ImageDraw.Draw(image_left)
+    #write connection
+    y = overlap_pixel + gap_pixel
+    while y < total_height_pixel - overlap_pixel:
+        draw.rectangle([0, y, line_width_pixel, y + gap_pixel + line_width_pixel], fill='white')
+        y += 2 * (line_width_pixel + gap_pixel)
+
+    del draw
+
+    image_right = image_middle.copy()
+
+    # left side
+    draw = ImageDraw.Draw(image_right)
+    #write connection
+    y = overlap_pixel
+    while y < total_height_pixel - overlap_pixel:
+        draw.rectangle([total_width_pixel - line_width_pixel, y, total_width_pixel, y + gap_pixel + line_width_pixel], fill='white')
+        y += 2 * (line_width_pixel + gap_pixel)
+
+    del draw
+
+    return image_left, image_middle, image_right
+
+
 
 def create_EBL_interdigitating_electrodes(h_pixel, b_pixel, pitch, bond_patch_height, w_um, s_um, overlap_offset, filename, file_num):
 
@@ -43,11 +89,14 @@ def create_EBL_interdigitating_electrodes(h_pixel, b_pixel, pitch, bond_patch_he
         draw.rectangle([x_0_lower, y_0_lower, x_1_lower, y_1_lower], fill='white')
 
     del draw
-    
-    
-    output_filename = filename + '_p' + str(int(pitch*1000)) + '_h' + str(int(h_pixel*pitch)) + '_b' + str(int(b_pixel*pitch)) + '_w' + str(w_um) + '_s' + str(s_um) + '_0' + str(file_num) + '.bmp'
-    image.save(output_filename, "BMP")
 
+    inverted_image = ImageOps.invert(image)
+    
+    
+    #output_filename = filename + '_p' + str(int(pitch*1000)) + '_h' + str(int(h_pixel*pitch)) + '_b' + str(int(b_pixel*pitch)) + '_w' + str(w_um) + '_s' + str(s_um) + '_0' + str(file_num) + '.bmp'
+    #image.save(output_filename, "BMP")
+    #inverted_image.save('Inverted-' + output_filename, 'BMP')
+"""
 datasizes = [20, 20, 20, 30, 30, 30, 40, 40, 40] # Mb
 pitches = [0.030, 0.060, 0.100, 0.030, 0.060, 0.100, 0.030, 0.060, 0.100] # nm
 df = pd.DataFrame({'datasize': datasizes, 'pitch': pitches})
@@ -63,12 +112,6 @@ df['s_um'] = 3
 df['p_um'] = 100
 df['num_electrodes'] = [20, None, None, 31, None, None, None, None, None]
 df['q_um'] = df['w_um']*df['num_electrodes'] + df['s_um']*(df['num_electrodes']-1)
-eps_r = eps_r_StTiO3
-df['capacitance'] = capacitance(df['p_um']*1E-6, df['w_um']*1E-6, df['s_um']*1E-6, df['q_um']*1E-6, eps_r, n)
-df
-
-
-
 
 for i in [1]:
     df['w_um'] = i
@@ -85,3 +128,47 @@ for i in [1]:
             filename = 'Bitmap-Files//IDE_Design'
             file_num = 1
             create_EBL_interdigitating_electrodes(h_pixel, b_pixel, pitch, bond_patch_height, w_um, s_um, overlap_offset, filename, file_num)
+"""
+
+class NanometerPixelConverter:
+    def __init__(self, pitch_nm: float):
+        self._pitch_nm = pitch_nm
+
+    def to_pixel(self, value_nm: float) -> int:
+        return int(value_nm / self._pitch_nm)
+
+    def to_nm(self, value_pixel: int) -> float:
+        return value_pixel * self._pitch_nm
+        
+
+if __name__ == '__main__':
+    
+
+    width_nm = 2500
+    height_nm = 5000
+    pitch_nm = 10
+
+    converter = NanometerPixelConverter(pitch_nm = pitch_nm)
+
+    params = {  'total_width_pixel': converter.to_pixel(width_nm), 
+                'total_height_pixel': converter.to_pixel(height_nm), 
+                'overlap_pixel': converter.to_pixel(1000), 
+                'gap_pixel': converter.to_pixel(100), 
+                'line_width_pixel': converter.to_pixel(100)
+            }
+
+    imageL, imageC, imageR = create_EBL_meander(**params)
+
+    imageL.save(r'meander\left_twp_{total_width_pixel}_thp_{total_height_pixel}_ovp_{overlap_pixel}_gp_{gap_pixel}_lwp_{line_width_pixel}.bmp'.format(**params), 'BMP')
+    imageC.save(r'meander\center_twp_{total_width_pixel}_thp_{total_height_pixel}_ovp_{overlap_pixel}_gp_{gap_pixel}_lwp_{line_width_pixel}.bmp'.format(**params), 'BMP')
+    imageR.save(r'meander\right_twp_{total_width_pixel}_thp_{total_height_pixel}_ovp_{overlap_pixel}_gp_{gap_pixel}_lwp_{line_width_pixel}.bmp'.format(**params), 'BMP')
+
+    plt.figure(figsize=(12,12))
+    plt.subplot(131)
+    plt.imshow(imageL)
+    plt.subplot(132)
+    plt.imshow(imageC)
+    plt.subplot(133)
+    plt.imshow(imageR)
+    plt.show()
+
