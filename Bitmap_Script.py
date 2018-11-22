@@ -11,6 +11,7 @@ def dose(pitch_x, pitch_y, passes, current, dwell_time):
     # nC/µm^2
     return dose
 
+
 def create_EBL_meander(total_width_pixel: int, total_height_pixel: int, overlap_pixel: int, gap_pixel: int, line_width_pixel: int) -> Image:
     image_middle = Image.new(mode='RGB', size = (total_width_pixel, total_height_pixel))
 
@@ -90,7 +91,7 @@ def create_EBL_interdigitating_electrodes(h_pixel, b_pixel, pitch, bond_patch_he
 
     del draw
 
-    inverted_image = ImageOps.invert(image)
+    return 
     
     
     #output_filename = filename + '_p' + str(int(pitch*1000)) + '_h' + str(int(h_pixel*pitch)) + '_b' + str(int(b_pixel*pitch)) + '_w' + str(w_um) + '_s' + str(s_um) + '_0' + str(file_num) + '.bmp'
@@ -153,8 +154,8 @@ if __name__ == '__main__':
     params = {  'total_width_pixel': converter.to_pixel(width_nm), 
                 'total_height_pixel': converter.to_pixel(height_nm), 
                 'overlap_pixel': converter.to_pixel(10000), 
-                'gap_pixel': converter.to_pixel(1000), 
-                'line_width_pixel': converter.to_pixel(1000)
+                'gap_pixel': converter.to_pixel(3000), 
+                'line_width_pixel': converter.to_pixel(3000)
             }
 
     imageL, imageC, imageR = create_EBL_meander(**params)
