@@ -1,98 +1,108 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.special as sp
 import pandas as pd
-import glob
 
 from PIL import Image, ImageDraw, ImageOps
+
 
 def dose(pitch_x, pitch_y, passes, current, dwell_time):
     dose = (dwell_time * passes * current)/(pitch_x * pitch_y)
     # nC/µm^2
     return dose
 
+class SEMBitmapCreator():
 
-def create_EBL_meander(total_width_pixel: int, total_height_pixel: int, overlap_pixel: int, gap_pixel: int, line_width_pixel: int) -> Image:
-    image_middle = Image.new(mode='RGB', size = (total_width_pixel, total_height_pixel))
-
-    draw = ImageDraw.Draw(image_middle)
-    # write overlap
-    draw.rectangle([0, 0, total_width_pixel, overlap_pixel], fill='white')
-    draw.rectangle([0, total_height_pixel - overlap_pixel, total_width_pixel, total_height_pixel], fill='white')
-
-    #write horizontal lines
-    y = overlap_pixel + gap_pixel
-    while y < total_height_pixel - overlap_pixel:
-        draw.rectangle([0, y, total_width_pixel, y + line_width_pixel], fill='white')
-        y += line_width_pixel + gap_pixel
-
-    del draw
-
-    image_left = image_middle.copy()
-
-    # left side
-    draw = ImageDraw.Draw(image_left)
-    #write connection
-    y = overlap_pixel + gap_pixel
-    while y < total_height_pixel - overlap_pixel:
-        draw.rectangle([0, y, line_width_pixel, y + gap_pixel + line_width_pixel], fill='white')
-        y += 2 * (line_width_pixel + gap_pixel)
-
-    del draw
-
-    image_right = image_middle.copy()
-
-    # left side
-    draw = ImageDraw.Draw(image_right)
-    #write connection
-    y = overlap_pixel
-    while y < total_height_pixel - overlap_pixel:
-        draw.rectangle([total_width_pixel - line_width_pixel, y, total_width_pixel, y + gap_pixel + line_width_pixel], fill='white')
-        y += 2 * (line_width_pixel + gap_pixel)
-
-    del draw
-
-    return image_left, image_middle, image_right
+    def __init__(self, total_width_pixel: int, total_height_pixel: int, overlap_pixel: int, gap_pixel: int, line_width_pixel: int):
+        self.total_width_pixel = total_width_pixel
+        self.total_height_pixel = total_height_pixel
+        self.overlap_pixel = overlap_pixel
+        self.gap_pixel = gap_pixel
+        self.line_width_pixel = line_width_pixel
 
 
 
-def create_EBL_interdigitating_electrodes(h_pixel, b_pixel, pitch, bond_patch_height, w_um, s_um, overlap_offset, filename, file_num):
 
-    def rescale(value):
-        return value/pitch
+    def create_EBL_meander(self) -> Image:
+        image_middle = Image.new(mode='RGB', size = (self.total_width_pixel, self.total_height_pixel))
 
-    # Creating the image
-    image = Image.new(mode = 'RGB', size = (int(b_pixel), int(h_pixel)), color ='black')
-    draw = ImageDraw.Draw(image)
+        draw = ImageDraw.Draw(image_middle)
+        # write overlap
+        draw.rectangle([0, 0, self.total_width_pixel, self.overlap_pixel], fill='white')
+        draw.rectangle([0, self.total_height_pixel - self.overlap_pixel, self.total_width_pixel, self.total_height_pixel], fill='white')
 
-    # Creating the bond patches
-    draw.rectangle([rescale(0),rescale(0),
-                    b_pixel,rescale(bond_patch_height)], fill='white')
-    draw.rectangle([rescale(0),h_pixel - rescale(bond_patch_height),
-                    b_pixel,h_pixel], fill='white')
+        #write horizontal lines
+        y = self.overlap_pixel + self.gap_pixel
+        while y < self.total_height_pixel - self.overlap_pixel:
+            draw.rectangle([0, y, self.total_width_pixel, y + self.line_width_pixel], fill='white')
+            y += self.line_width_pixel + self.gap_pixel
 
-    num_electrodes = (b_pixel-rescale(overlap_offset))/rescale(w_um+s_um)
+        del draw
 
-    for i in range(int(num_electrodes/2+0.5)):
-        # upper electrodes
-        x_0_upper = rescale(overlap_offset+i*2*(w_um+s_um))
-        y_0_upper = rescale(bond_patch_height)
-        x_1_upper = x_0_upper + rescale(w_um)
-        y_1_upper = y_0_upper + h_pixel-rescale(2*bond_patch_height)-rescale(s_um)
-        draw.rectangle([x_0_upper, y_0_upper, x_1_upper, y_1_upper], fill='white')
-    
-    for i in range(int(num_electrodes/2+0.5)):
-        # lower electrodes
-        x_0_lower = rescale(overlap_offset+i*2*(w_um+s_um)+(w_um+s_um))
-        y_0_lower = rescale(bond_patch_height + s_um)
-        x_1_lower = x_0_lower + rescale(w_um)
-        y_1_lower = y_0_lower + h_pixel-rescale(bond_patch_height)
-        draw.rectangle([x_0_lower, y_0_lower, x_1_lower, y_1_lower], fill='white')
+        image_left = image_middle.copy()
 
-    del draw
+        # left side
+        draw = ImageDraw.Draw(image_left)
+        #write connection
+        y = self.overlap_pixel + self.gap_pixel
+        while y < self.total_height_pixel - self.overlap_pixel:
+            draw.rectangle([0, y, self.line_width_pixel, y + self.gap_pixel + self.line_width_pixel], fill='white')
+            y += 2 * (self.line_width_pixel + self.gap_pixel)
 
-    return 
-    
+        del draw
+
+        image_right = image_middle.copy()
+
+        # left side
+        draw = ImageDraw.Draw(image_right)
+        #write connection
+        y = self.overlap_pixel
+        while y < self.total_height_pixel - self.overlap_pixel:
+            draw.rectangle([self.total_width_pixel - self.line_width_pixel, y, self.total_width_pixel, y + self.gap_pixel + self.line_width_pixel], fill='white')
+            y += 2 * (self.line_width_pixel + self.gap_pixel)
+
+        del draw
+
+        return image_left, image_middle, image_right
+
+
+
+    def create_EBL_interdigitating_electrodes(h_pixel, b_pixel, pitch, bond_patch_height, w_um, s_um, overlap_offset, filename, file_num):
+
+        def rescale(value):
+            return value/pitch
+
+        # Creating the image
+        image = Image.new(mode = 'RGB', size = (int(b_pixel), int(h_pixel)), color ='black')
+        draw = ImageDraw.Draw(image)
+
+        # Creating the bond patches
+        draw.rectangle([rescale(0),rescale(0),
+                        b_pixel,rescale(bond_patch_height)], fill='white')
+        draw.rectangle([rescale(0),h_pixel - rescale(bond_patch_height),
+                        b_pixel,h_pixel], fill='white')
+
+        num_electrodes = (b_pixel-rescale(overlap_offset))/rescale(w_um+s_um)
+
+        for i in range(int(num_electrodes/2+0.5)):
+            # upper electrodes
+            x_0_upper = rescale(overlap_offset+i*2*(w_um+s_um))
+            y_0_upper = rescale(bond_patch_height)
+            x_1_upper = x_0_upper + rescale(w_um)
+            y_1_upper = y_0_upper + h_pixel-rescale(2*bond_patch_height)-rescale(s_um)
+            draw.rectangle([x_0_upper, y_0_upper, x_1_upper, y_1_upper], fill='white')
+        
+        for i in range(int(num_electrodes/2+0.5)):
+            # lower electrodes
+            x_0_lower = rescale(overlap_offset+i*2*(w_um+s_um)+(w_um+s_um))
+            y_0_lower = rescale(bond_patch_height + s_um)
+            x_1_lower = x_0_lower + rescale(w_um)
+            y_1_lower = y_0_lower + h_pixel-rescale(bond_patch_height)
+            draw.rectangle([x_0_lower, y_0_lower, x_1_lower, y_1_lower], fill='white')
+
+        del draw
+
+        return 
+        
     
     #output_filename = filename + '_p' + str(int(pitch*1000)) + '_h' + str(int(h_pixel*pitch)) + '_b' + str(int(b_pixel*pitch)) + '_w' + str(w_um) + '_s' + str(s_um) + '_0' + str(file_num) + '.bmp'
     #image.save(output_filename, "BMP")
@@ -158,7 +168,9 @@ if __name__ == '__main__':
                 'line_width_pixel': converter.to_pixel(3000)
             }
 
-    imageL, imageC, imageR = create_EBL_meander(**params)
+
+    creator = SEMBitmapCreator(**params)
+    imageL, imageC, imageR = creator.create_EBL_meander()
 
     if not os.path.exists(r'.\meander'):
         os.makedirs(r'.\meander')
